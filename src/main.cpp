@@ -903,7 +903,8 @@ int main(int argc, char *argv[])
 
         while (true)
         {
-
+            picojson::value v;
+            picojson::value v1;
             framesCounter++;
             isLastFrame = !frameReadStatus;
 
@@ -1282,6 +1283,7 @@ int main(int argc, char *argv[])
                 };
                 connection->Publish(topic.c_str(), AWS_MQTT_QOS_AT_MOST_ONCE, false, payload, onPublishComplete);   
             }
+
             // End of file (or a single frame file like an image). We just keep last frame displayed to let user check what was shown
             if (isLastFrame)
             {
