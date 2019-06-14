@@ -134,6 +134,24 @@ static const char async_message[] = "Enable asynchronous mode";
 // dlib facial landmarks detection
 static const char dlib_lm_message[] = "Enable dlib's facial landmark detections";
 
+// AWS endpoint of the mqtt server
+static const char endpoint_message[] = "Endpoint of the mqtt server not including a port";
+
+// AWS client certificate
+static const char cert_message[] = "Path to your client certificate in PEM format";
+
+// AWS private key
+static const char key_message[] = "Path to your key in PEM format";
+
+// AWS mqtt topic to subscribe/publish
+static const char topic_message[] = "Topic to publish and to subscribe to";
+
+// AWS Client ID
+static const char client_id_message[] = "Client id to use (optional)";
+
+// AWS CA certificate
+static const char ca_file_message[] = "Path to a CA file in PEM format";
+
 /// \brief Define flag for showing help message <br>
 DEFINE_bool(h, false, help_message);
 
@@ -290,5 +308,11 @@ static void showUsage() {
     std::cout << "    -pc                        " << performance_counter_message << std::endl;
     std::cout << "    -r                         " << raw_output_message << std::endl;
     std::cout << "    -t                         " << thresh_output_message << std::endl;
+    std::cout << " AWS options [OPTIONAL]:       " << std::endl;
+    std::cout << "    -endpoint                  " << endpoint_message << std::endl;
+    std::cout << "    -cert                      " << cert_message << std::endl;
+    std::cout << "    -key                       " << key_message << std::endl;
+    std::cout << "    -topic                     " << topic_message << std::endl;
+    std::cout << "    -client_id                 " << client_id_message << std::endl;
+    std::cout << "    -ca_file                   " << ca_file_message << std::endl;
 }
-
