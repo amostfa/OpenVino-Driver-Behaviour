@@ -468,7 +468,7 @@ void beeping(Player *beep, bool *finished)
     {
         if (tDrowsiness <= 100)
             beep->setGain(exp((float)((tDrowsiness - 100) / 10)));
-        if (tDrowsiness > 30)
+        if (tDrowsiness > 40)
         {
             if (!beep->isPlaying())
                 beep->play();
@@ -753,9 +753,9 @@ int main(int argc, char *argv[])
         Aws::Crt::ApiHandle apiHandle;
 
         Aws::Crt::String endpoint("a1572pdc8tbdas-ats.iot.us-east-1.amazonaws.com");
-        Aws::Crt::String certificatePath("/home/h/.aws/credentials/55c1c3cc0e-certificate.pem.crt");
-        Aws::Crt::String keyPath("/home/h/.aws/credentials/55c1c3cc0e-private.pem.key");
-        Aws::Crt::String caFile("/home/h/.aws/credentials/AmazonRootCA1.pem");
+        Aws::Crt::String certificatePath("/home/fpriotti/aws-certificates/a81867df13-certificate.pem.crt");
+        Aws::Crt::String keyPath("/home/fpriotti/aws-certificates/a81867df13-private.pem.key");
+        Aws::Crt::String caFile("/home/fpriotti/aws-certificates/AmazonRootCA1.pem");
         Aws::Crt::String topic("drivers/");
         Aws::Crt::String clientId("driver_behavior");
 
@@ -1229,11 +1229,17 @@ int main(int argc, char *argv[])
             v1.get<picojson::object>()["engine"] = picojson::value(truck.getEngine());
             v1.get<picojson::object>()["location"] = picojson::value("-31.406530, -64.189353"); //Fake location.
             v1.get<picojson::object>()["name"] = picojson::value(driver_name);
-//            v["distraction"] = picojson::value(tDistraction);
+//          v["distraction"] = picojson::value(tDistraction);
             v1.get<picojson::object>()["drowsiness"] = picojson::value(tDrowsiness);
             unsigned long milliseconds_time = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
             v1.get<picojson::object>()["timestamp"] = picojson::value((double)milliseconds_time);
-//            v.get<picojson::object>()["driver"].set<picojson::array>(picojson::array());
+            v1.get<picojson::object>()["speed"] = picojson::value(truck.getSpeed());
+            v1.get<picojson::object>()["distraction"] = picojson::value(tDistraction);
+            double dangMap = 0; // This variable shows the highest value.
+            if (tDrowsiness >= tDistraction) dangMap = tDrowsiness;
+                else dangMap = tDistraction;
+            v1.get<picojson::object>()["dangMap"] = picojson::value(dangMap);
+//          v.get<picojson::object>()["driver"].set<picojson::array>(picojson::array());
 //  	    v.get<picojson::object>()["driver"].get<picojson::array>().push_back(v1);
 //  	    v.get<picojson::object>()["driver"] = v1;
             std::string input = picojson::value(v1).serialize();
