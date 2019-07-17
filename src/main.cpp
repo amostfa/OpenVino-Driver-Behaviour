@@ -34,7 +34,6 @@
 
 #include <aws/crt/Api.h>
 #include <aws/crt/StlAllocator.h>
-
 #include <aws/iot/MqttClient.h>
 
 #include <dlib/image_processing/frontal_face_detector.h>
@@ -218,6 +217,7 @@ std::string labelAlarm = "";
 
 cv::Mat face_save;
 bool firstPhoto = true;
+//bool wifiConnection = false;
 
 void alarmDrowsiness(cv::Mat prev_frame, int yawn_total, int blinl_total, int width, int height, int x_alarm, int y_alarm, int x_truck_i, bool headbutt)
 {
@@ -461,7 +461,53 @@ void driver_recognition(cv::Mat prev_frame, std::vector<FaceDetection::Result> p
         cv::putText(prev_frame, "Driver: " + *driver_name, cv::Point2f(x_truck_i, y_driver_i + 40), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 0, 255), 1);
     }
 }
+/*
+void send2aws (const Aws::Crt::String &topic, auto connection) {
+    
+    if (timer["send2aws"].getSmoothedDuration() > 500.0){
+        timer.start("send2aws");
+        picojson::value v;
+        picojson::value v1;
+        
+        v.set<picojson::object>(picojson::object());
+        v1.set<picojson::object>(picojson::object());
+        v1.get<picojson::object>()["engine"] = picojson::value(truck.getEngine());
+        v1.get<picojson::object>()["location"] = picojson::value("-31.406530, -64.189353"); //Fake location.
+        v1.get<picojson::object>()["name"] = picojson::value(driver_name);
+//          v["distraction"] = picojson::value(tDistraction);
+        v1.get<picojson::object>()["drowsiness"] = picojson::value(tDrowsiness);
+        unsigned long milliseconds_time = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+        v1.get<picojson::object>()["timestamp"] = picojson::value((double)milliseconds_time);
+        v1.get<picojson::object>()["speed"] = picojson::value(truck.getSpeed());
+        v1.get<picojson::object>()["distraction"] = picojson::value(tDistraction);
+        double dangMap = 0; // This variable shows the highest value.
+        if (tDrowsiness >= tDistraction) dangMap = tDrowsiness;
+            else dangMap = tDistraction;
+        v1.get<picojson::object>()["dangMap"] = picojson::value(dangMap);
+//          v.get<picojson::object>()["driver"].set<picojson::array>(picojson::array());
+//  	    v.get<picojson::object>()["driver"].get<picojson::array>().push_back(v1);
+//  	    v.get<picojson::object>()["driver"] = v1;
+        std::string input = picojson::value(v1).serialize();
+        Aws::Crt::ByteBuf payload = Aws::Crt::ByteBufNewCopy(Aws::Crt::DefaultAllocator(), (const uint8_t *)input.data(), input.length());
+        Aws::Crt::ByteBuf *payloadPtr = &payload;
 
+        auto onPublishComplete = [payloadPtr](Aws::Crt::Mqtt::MqttConnection &, uint16_t packetId, int errorCode) {
+            aws_byte_buf_clean_up(payloadPtr);
+
+            if (packetId)
+            {
+                fprintf(stdout, "Operation on packetId %d Succeeded\n", packetId);
+            }
+            else
+            {
+                fprintf(stdout, "Operation failed with error %s\n", aws_error_debug_str(errorCode));
+            }
+        };
+        connection->Publish(topic.c_str(), AWS_MQTT_QOS_AT_MOST_ONCE, false, payload, onPublishComplete);
+    }
+    
+}
+*/
 void beeping(Player *beep, bool *finished)
 {
     while (!(*finished))
@@ -508,6 +554,7 @@ int main(int argc, char *argv[])
     {
         timer.start("face_identified"); //Initializate timers
         timer.start("headbutt");
+        timer.start("send2aws");
 
         dlib::shape_predictor sp;
         dlib::deserialize("shape_predictor_68_face_landmarks.dat") >> sp;
@@ -908,8 +955,7 @@ int main(int argc, char *argv[])
 
         while (true)
         {
-            picojson::value v;
-            picojson::value v1;
+
             framesCounter++;
             isLastFrame = !frameReadStatus;
 
@@ -1218,48 +1264,64 @@ int main(int argc, char *argv[])
                     thread_recognition.join();
 
                 }
-
+/*
+                if (wifiConnection) {
+                    cv::putText(prev_frame, "CONNECTION: ON", cv::Point2f(10,100), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(255, 255, 255), 1.2);                    
+                } 
+                else {
+                    cv::putText(prev_frame, "CONNECTION: OFF", cv::Point2f(10,100), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(255, 255, 255), 1);
+                } 
+*/
                 // Sample of Results
                 cv::imshow("Detection results", prev_frame);
                 timer.finish("visualization");
             }
 
-            v.set<picojson::object>(picojson::object());
-            v1.set<picojson::object>(picojson::object());
-            v1.get<picojson::object>()["engine"] = picojson::value(truck.getEngine());
-            v1.get<picojson::object>()["location"] = picojson::value("-31.406530, -64.189353"); //Fake location.
-            v1.get<picojson::object>()["name"] = picojson::value(driver_name);
-//          v["distraction"] = picojson::value(tDistraction);
-            v1.get<picojson::object>()["drowsiness"] = picojson::value(tDrowsiness);
-            unsigned long milliseconds_time = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
-            v1.get<picojson::object>()["timestamp"] = picojson::value((double)milliseconds_time);
-            v1.get<picojson::object>()["speed"] = picojson::value(truck.getSpeed());
-            v1.get<picojson::object>()["distraction"] = picojson::value(tDistraction);
-            double dangMap = 0; // This variable shows the highest value.
-            if (tDrowsiness >= tDistraction) dangMap = tDrowsiness;
-                else dangMap = tDistraction;
-            v1.get<picojson::object>()["dangMap"] = picojson::value(dangMap);
-//          v.get<picojson::object>()["driver"].set<picojson::array>(picojson::array());
-//  	    v.get<picojson::object>()["driver"].get<picojson::array>().push_back(v1);
-//  	    v.get<picojson::object>()["driver"] = v1;
-            std::string input = picojson::value(v1).serialize();
-            Aws::Crt::ByteBuf payload = Aws::Crt::ByteBufNewCopy(Aws::Crt::DefaultAllocator(), (const uint8_t *)input.data(), input.length());
-            Aws::Crt::ByteBuf *payloadPtr = &payload;
+            // Thread: Send Data to AWS
+            //std::thread senddata_thread(send2aws, topic, connection);
 
-            auto onPublishComplete = [payloadPtr](Aws::Crt::Mqtt::MqttConnection &, uint16_t packetId, int errorCode) {
-                aws_byte_buf_clean_up(payloadPtr);
+            if (timer["send2aws"].getSmoothedDuration() > 500.0){
+                timer.start("send2aws");
+                picojson::value v;
+                picojson::value v1;
+                
+                v.set<picojson::object>(picojson::object());
+                v1.set<picojson::object>(picojson::object());
+                v1.get<picojson::object>()["engine"] = picojson::value(truck.getEngine());
+                v1.get<picojson::object>()["location"] = picojson::value("-31.406530, -64.189353"); //Fake location.
+                v1.get<picojson::object>()["name"] = picojson::value(driver_name);
+            //          v["distraction"] = picojson::value(tDistraction);
+                v1.get<picojson::object>()["drowsiness"] = picojson::value(tDrowsiness);
+                unsigned long milliseconds_time = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+                v1.get<picojson::object>()["timestamp"] = picojson::value((double)milliseconds_time);
+                v1.get<picojson::object>()["speed"] = picojson::value(truck.getSpeed());
+                v1.get<picojson::object>()["distraction"] = picojson::value(tDistraction);
+                double dangMap = 0; // This variable shows the highest value.
+                if (tDrowsiness >= tDistraction) dangMap = tDrowsiness;
+                    else dangMap = tDistraction;
+                v1.get<picojson::object>()["dangMap"] = picojson::value(dangMap);
+            //          v.get<picojson::object>()["driver"].set<picojson::array>(picojson::array());
+            //  	    v.get<picojson::object>()["driver"].get<picojson::array>().push_back(v1);
+            //  	    v.get<picojson::object>()["driver"] = v1;
+                std::string input = picojson::value(v1).serialize();
+                Aws::Crt::ByteBuf payload = Aws::Crt::ByteBufNewCopy(Aws::Crt::DefaultAllocator(), (const uint8_t *)input.data(), input.length());
+                Aws::Crt::ByteBuf *payloadPtr = &payload;
 
-                if (packetId)
-                {
-                    fprintf(stdout, "Operation on packetId %d Succeeded\n", packetId);
-                }
-                else
-                {
-                    fprintf(stdout, "Operation failed with error %s\n", aws_error_debug_str(errorCode));
-                }
-            };
-            connection->Publish(topic.c_str(), AWS_MQTT_QOS_AT_MOST_ONCE, false, payload, onPublishComplete);
 
+                auto onPublishComplete = [payloadPtr](Aws::Crt::Mqtt::MqttConnection &, uint16_t packetId, int errorCode) {
+                    aws_byte_buf_clean_up(payloadPtr);
+
+                    if (packetId)
+                    {
+                        fprintf(stdout, "Operation on packetId %d Succeeded\n", packetId);
+                    }
+                    else
+                    {
+                        fprintf(stdout, "Operation failed with error %s\n", aws_error_debug_str(errorCode));
+                    }
+                };
+                connection->Publish(topic.c_str(), AWS_MQTT_QOS_AT_MOST_ONCE, false, payload, onPublishComplete);   
+            }
             // End of file (or a single frame file like an image). We just keep last frame displayed to let user check what was shown
             if (isLastFrame)
             {
@@ -1280,6 +1342,9 @@ int main(int argc, char *argv[])
             prev_frame = frame;
             frame = next_frame;
             next_frame = cv::Mat();
+
+            //senddata_thread.join();
+
         }
 
         connection->Unsubscribe(
