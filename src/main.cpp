@@ -800,9 +800,9 @@ int main(int argc, char *argv[])
         Aws::Crt::ApiHandle apiHandle;
 
         Aws::Crt::String endpoint("a1572pdc8tbdas-ats.iot.us-east-1.amazonaws.com");
-        Aws::Crt::String certificatePath("/home/fpriotti/aws-certificates/a81867df13-certificate.pem.crt");
-        Aws::Crt::String keyPath("/home/fpriotti/aws-certificates/a81867df13-private.pem.key");
-        Aws::Crt::String caFile("/home/fpriotti/aws-certificates/AmazonRootCA1.pem");
+        Aws::Crt::String certificatePath("a81867df13-certificate.pem.crt");
+        Aws::Crt::String keyPath("a81867df13-private.pem.key");
+        Aws::Crt::String caFile("AmazonRootCA1.pem");
         Aws::Crt::String topic("drivers/");
         Aws::Crt::String clientId("driver_behavior");
 
