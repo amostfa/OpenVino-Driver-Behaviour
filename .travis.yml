@@ -10,7 +10,7 @@ before_script:
 script:
   - docker run --name openvinocont -t -d openvinoincluit/openvino:driver
   - docker exec openvinocont git clone https://github.com/incluit/OpenVino-Driver-Behaviour
-  - docker exec openvinocont bash -c 'source /opt/intel/computer_vision_sdk/bin/setupvars.sh && cd /app/OpenVino-Driver-Behaviour && mkdir build && cd build && source /app/OpenVino-Driver-Behaviour/scripts/setupenv.sh && cmake .. && make'
+  - docker exec openvinocont bash -c 'source /opt/intel/openvino/bin/setupvars.sh && cd /app/OpenVino-Driver-Behaviour && mkdir build && cd build && source /app/OpenVino-Driver-Behaviour/scripts/setupenv.sh && cmake .. && make'
 
 after_script:
   - docker images
