@@ -83,7 +83,7 @@ target_include_directories(${PROJECT_NAME} PUBLIC
         /home/h/incluit/OpenVino-Driver-Behaviour/aws-crt-cpp/build/deps/install/include)
 
 if(UNIX)
-    target_link_libraries( ${TARGET_NAME} ${LIB_DL} pthread ${OpenCV_LIBRARIES} ${Boost_LIBRARIES} dlib::dlib ao sndfile)
+    target_link_libraries( ${TARGET_NAME} ${LIB_DL} pthread ${OpenCV_LIBRARIES} ${Boost_LIBRARIES} dlib::dlib ao sndfile gomp)
 endif()
 
 add_custom_command(TARGET driver_behavior POST_BUILD

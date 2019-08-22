@@ -134,6 +134,8 @@ static const char async_message[] = "Enable asynchronous mode";
 // dlib facial landmarks detection
 static const char dlib_lm_message[] = "Enable dlib's facial landmark detections";
 
+static const char output_path[] = "Path where to write the output.";
+
 /// \brief Define flag for showing help message <br>
 DEFINE_bool(h, false, help_message);
 
@@ -251,6 +253,7 @@ DEFINE_bool(dlib_lm, false, "Acti");
 
 DEFINE_string(fg, "", "Path to gallery");
 
+DEFINE_string(o, ".", output_path);
 /**
 * \brief This function shows a help message
 */
@@ -290,5 +293,6 @@ static void showUsage() {
     std::cout << "    -pc                        " << performance_counter_message << std::endl;
     std::cout << "    -r                         " << raw_output_message << std::endl;
     std::cout << "    -t                         " << thresh_output_message << std::endl;
+    std::cout << "\t-o\t\t\t\t" << output_path << std::endl;
 }
 
