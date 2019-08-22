@@ -29,6 +29,7 @@ else()
 	set(InferenceEngine_Samples_DIR "$ENV{InferenceEngine_DIR}/../samples" )
 endif()
 
+set (ENABLE_AVX2 OFF)
 list (APPEND CMAKE_MODULE_PATH ${InferenceEngine_Samples_DIR}/cmake)
 message(STATUS "CMAKE_MODULE_PATH=${CMAKE_MODULE_PATH}")
 
