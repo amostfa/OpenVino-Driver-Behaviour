@@ -19,6 +19,7 @@ include(CMakeLists_common.cmake)
 set(TARGET_NAME "driver_behavior")
 
 option(SIMULATOR  "Use ets/ats for truck data simulation" OFF)
+option(NO_SOUND  "Disable Beep" OFF)
 
 find_package(OpenCV)
 if(OpenCV_FOUND)
@@ -74,6 +75,9 @@ add_definitions(-DINTEL_CVSDK_VER=$ENV{INTEL_CVSDK_VER})
 if( SIMULATOR )
   add_definitions(-DSIMULATOR)
 endif()
+if( NO_SOUND )
+  add_definitions(-DNO_SOUND)
+endif()
 
 set_target_properties(${TARGET_NAME} PROPERTIES "CMAKE_CXX_FLAGS" "${CMAKE_CXX_FLAGS} -fPIE" COMPILE_PDB_NAME ${TARGET_NAME})
 
@@ -83,7 +87,11 @@ target_include_directories(${PROJECT_NAME} PUBLIC
         /home/h/incluit/OpenVino-Driver-Behaviour/aws-crt-cpp/build/deps/install/include)
 
 if(UNIX)
+if ( NO_SOUND )
+    target_link_libraries( ${TARGET_NAME} ${LIB_DL} pthread ${OpenCV_LIBRARIES} ${Boost_LIBRARIES} dlib::dlib gomp)
+else ()
     target_link_libraries( ${TARGET_NAME} ${LIB_DL} pthread ${OpenCV_LIBRARIES} ${Boost_LIBRARIES} dlib::dlib ao sndfile gomp)
+endif()
 endif()
 
 add_custom_command(TARGET driver_behavior POST_BUILD

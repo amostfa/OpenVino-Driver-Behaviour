@@ -493,6 +493,7 @@ void driver_recognition(cv::Mat prev_frame, std::vector<FaceDetection::Result> p
     }
 }
 
+#ifndef NO_SOUND
 void beeping(Player *beep, bool *finished)
 {
     while (!(*finished))
@@ -506,7 +507,7 @@ void beeping(Player *beep, bool *finished)
         }
     }
 }
-
+#endif
 int headbuttDetection(boost::circular_buffer<double> *angle_p)
 {
     boost::circular_buffer<double> &pitch = *angle_p;
@@ -786,9 +787,11 @@ int main(int argc, char *argv[])
         bool headbutt = false;
 
         bool processing_finished = false;
+
+#ifndef NO_SOUND
         Player beep("beep.ogg");
         std::thread beep_thread(beeping, &beep, &processing_finished);
-
+#endif
         timer.start("total");
         while (true)
         {
@@ -1141,7 +1144,9 @@ int main(int argc, char *argv[])
         }
 
         processing_finished = true;
+#ifndef NO_SOUND        
         beep_thread.join();
+#endif
         slog::info << "Number of processed frames: " << framesCounter << slog::endl;
         slog::info << "Total image throughput: " << framesCounter * (1000.F / timer["total"].getTotalDuration()) << " fps" << slog::endl;
         WriteStats(stats_data, framesCounter, timer["total"].getTotalDuration());
