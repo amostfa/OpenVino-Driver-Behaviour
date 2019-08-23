@@ -600,7 +600,7 @@ int main(int argc, char *argv[])
         const size_t orig_width     = (size_t) cap.get(cv::CAP_PROP_FRAME_WIDTH);
         const size_t orig_height    = (size_t) cap.get(cv::CAP_PROP_FRAME_HEIGHT);
         const size_t orig_fps = (size_t) cap.get(cv::CAP_PROP_FPS);
-        std::string job_id = "PBS_JOBID";
+        std::string job_id = std::getenv("PBS_JOBID");
         std::string stats_data = FLAGS_o+"/stats_"+job_id+".txt";
         std::string progress_data = FLAGS_o+"/i_progress_"+job_id+".txt";
         std::string video_file = FLAGS_o+"/output_"+job_id+".mp4";
