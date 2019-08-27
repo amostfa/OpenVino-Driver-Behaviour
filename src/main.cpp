@@ -58,8 +58,8 @@ void WriteStats(std::string stats_data, int totalFrames, double totalTime)
 {
        std::ofstream stats;
        stats.open(stats_data);
-       stats<<std::to_string(totalFrames)+'\n';
        stats<<totalTime<<'\n';
+       stats<<std::to_string(totalFrames)+'\n';
        stats.close();
 }
 
@@ -617,7 +617,7 @@ int main(int argc, char *argv[])
 
         // read input (video) frame
         cv::Mat frame;
-        std::vector<cv::Mat> processed_frames;
+        //std::vector<cv::Mat> processed_frames;
         if (!cap.read(frame))
         {
             throw std::logic_error("Failed to get frame from cv::VideoCapture");
@@ -1083,7 +1083,7 @@ int main(int argc, char *argv[])
 
 	    }
 
-	    processed_frames.push_back(prev_frame.clone());
+	    //processed_frames.push_back(prev_frame.clone());
 	    // Sample of Results
 	    if (!FLAGS_no_show)
 		    cv::imshow("Detection results", prev_frame);
@@ -1117,8 +1117,8 @@ int main(int argc, char *argv[])
 #endif
         slog::info << "Number of processed frames: " << framesCounter << slog::endl;
         slog::info << "Total image throughput: " << framesCounter * (1000.F / timer["total"].getTotalDuration()) << " fps" << slog::endl;
-        WriteStats(stats_data, framesCounter, timer["total"].getTotalDuration());
-        WriteVideo(processed_frames, video_file, orig_fps, orig_width, orig_height);
+        WriteStats(stats_data, framesCounter, timer["total"].getTotalDuration()/1000.F);
+        //WriteVideo(processed_frames, video_file, orig_fps, orig_width, orig_height);
 
         // Show performace results.
         if (FLAGS_pc)
