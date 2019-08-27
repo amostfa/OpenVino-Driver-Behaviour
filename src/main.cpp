@@ -626,67 +626,8 @@ int main(int argc, char *argv[])
         // --------------------------- 1. Load Plugin for inference engine -------------------------------------
         std::map<std::string, InferencePlugin> pluginsForDevices;
         std::vector<std::pair<std::string, std::string>> cmdOptions = {
-            {FLAGS_d, FLAGS_m}, {FLAGS_d_ag, FLAGS_m_ag}, {FLAGS_d_hp, FLAGS_m_hp}, {FLAGS_d_em, FLAGS_m_em}};
-        FaceDetection faceDetector(FLAGS_m, FLAGS_d, 1, false, FLAGS_async, FLAGS_t, FLAGS_r);
-        HeadPoseDetection headPoseDetector(FLAGS_m_hp, FLAGS_d_hp, FLAGS_n_hp, FLAGS_dyn_hp, FLAGS_async);
-        //	FacialLandmarksDetection facialLandmarksDetector(FLAGS_m_lm, FLAGS_d_lm, FLAGS_n_lm, FLAGS_dyn_lm, FLAGS_async);
-
-        auto fr_model_path = FLAGS_m_reid;
-        std::cout << fr_model_path << std::endl;
-        auto fr_weights_path = fileNameNoExt(FLAGS_m_reid) + ".bin";
-        auto lm_model_path = FLAGS_m_lm;
-        auto lm_weights_path = fileNameNoExt(FLAGS_m_lm) + ".bin";
-
-        std::map<std::string, InferencePlugin> plugins_for_devices;
-        std::vector<std::string> devices = {FLAGS_d_lm, FLAGS_d_reid};
-
-        for (const auto &device : devices)
-        {
-            if (plugins_for_devices.find(device) != plugins_for_devices.end())
-            {
-                continue;
-            }
-            slog::info << "Loading plugin " << device << slog::endl;
-            InferencePlugin plugin = PluginDispatcher({"../../../lib/intel64", ""}).getPluginByDevice(device);
-            printPluginVersion(plugin, std::cout);
-            /** Load extensions for the CPU plugin **/
-            if ((device.find("CPU") != std::string::npos))
-            {
-                plugin.AddExtension(std::make_shared<Extensions::Cpu::CpuExtensions>());
-                if (!FLAGS_l.empty())
-                {
-                    // CPU(MKLDNN) extensions are loaded as a shared library and passed as a pointer to base extension
-                    auto extension_ptr = make_so_pointer<IExtension>(FLAGS_l);
-                    plugin.AddExtension(extension_ptr);
-                    slog::info << "CPU Extension loaded: " << FLAGS_l << slog::endl;
-                }
-            }
-            else if (!FLAGS_c.empty())
-            {
-                // Load Extensions for other plugins not CPU
-                plugin.SetConfig({{PluginConfigParams::KEY_CONFIG_FILE, FLAGS_c}});
-            }
-            plugin.SetConfig({{PluginConfigParams::KEY_DYN_BATCH_ENABLED, PluginConfigParams::YES}});
-            if (FLAGS_pc)
-                plugin.SetConfig({{PluginConfigParams::KEY_PERF_COUNT, PluginConfigParams::YES}});
-            plugins_for_devices[device] = plugin;
-        }
-
-        CnnConfig reid_config(fr_model_path, fr_weights_path);
-        reid_config.max_batch_size = 16;
-        reid_config.enabled = /*face_config.enabled*/ true && !fr_model_path.empty() && !lm_model_path.empty();
-        reid_config.plugin = plugins_for_devices[FLAGS_d_reid];
-        VectorCNN face_reid(reid_config);
-
-        // Load landmarks detector
-        CnnConfig landmarks_config(lm_model_path, lm_weights_path);
-        landmarks_config.max_batch_size = 16;
-        landmarks_config.enabled = /*face_config.enabled*/ true && reid_config.enabled && !lm_model_path.empty();
-        landmarks_config.plugin = plugins_for_devices[FLAGS_d_lm];
-        VectorCNN landmarks_detector(landmarks_config);
-
-        double t_reid = 0.4; // Cosine distance threshold between two vectors for face reidentification.
-        EmbeddingsGallery face_gallery(FLAGS_fg, t_reid, landmarks_detector, face_reid);
+            {FLAGS_d, FLAGS_m}, {FLAGS_d_ag, FLAGS_m_ag}, {FLAGS_d_hp, FLAGS_m_hp}, {FLAGS_d_em, FLAGS_m_em}
+            {FLAGS_d_lm, FLAGS_m_lm}, {FLAGS_d_reid, FLAGS_m_reid}};
 
         for (auto &&option : cmdOptions)
         {
@@ -726,8 +667,35 @@ int main(int argc, char *argv[])
                 // Load Extensions for other plugins not CPU
                 plugin.SetConfig({{PluginConfigParams::KEY_CONFIG_FILE, FLAGS_c}});
             }
+            plugin.SetConfig({{PluginConfigParams::KEY_DYN_BATCH_ENABLED, PluginConfigParams::YES}});
             pluginsForDevices[deviceName] = plugin;
         }
+
+        FaceDetection faceDetector(FLAGS_m, FLAGS_d, 1, false, FLAGS_async, FLAGS_t, FLAGS_r);
+        HeadPoseDetection headPoseDetector(FLAGS_m_hp, FLAGS_d_hp, FLAGS_n_hp, FLAGS_dyn_hp, FLAGS_async);
+        //	FacialLandmarksDetection facialLandmarksDetector(FLAGS_m_lm, FLAGS_d_lm, FLAGS_n_lm, FLAGS_dyn_lm, FLAGS_async);
+
+        auto fr_model_path = FLAGS_m_reid;
+        std::cout << fr_model_path << std::endl;
+        auto fr_weights_path = fileNameNoExt(FLAGS_m_reid) + ".bin";
+        auto lm_model_path = FLAGS_m_lm;
+        auto lm_weights_path = fileNameNoExt(FLAGS_m_lm) + ".bin";
+
+        CnnConfig reid_config(fr_model_path, fr_weights_path);
+        reid_config.max_batch_size = 16;
+        reid_config.enabled = /*face_config.enabled*/ true && !fr_model_path.empty() && !lm_model_path.empty();
+        reid_config.plugin = pluginsForDevices[FLAGS_d_reid];
+        VectorCNN face_reid(reid_config);
+
+        // Load landmarks detector
+        CnnConfig landmarks_config(lm_model_path, lm_weights_path);
+        landmarks_config.max_batch_size = 16;
+        landmarks_config.enabled = /*face_config.enabled*/ true && reid_config.enabled && !lm_model_path.empty();
+        landmarks_config.plugin = pluginsForDevices[FLAGS_d_lm];
+        VectorCNN landmarks_detector(landmarks_config);
+
+        double t_reid = 0.4; // Cosine distance threshold between two vectors for face reidentification.
+        EmbeddingsGallery face_gallery(FLAGS_fg, t_reid, landmarks_detector, face_reid);
 
         /** Per layer metrics **/
         if (FLAGS_pc)
