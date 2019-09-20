@@ -11,6 +11,16 @@ void Truck::ros_callback(const ets_msgs::msg::Truck::SharedPtr msg)
     this->setTrailer(msg->trailer_connected);
     this->setPosition(msg->x, msg->y, msg->z, msg->heading, msg->pitch, msg->roll);
     this->setParkingBrake(msg->parking_brake);
+    this->setAirPressure(msg->air_pressure);
+    this->setWearEngine(msg->wear_engine);
+    this->setWearTransmission(msg->wear_transmission);
+    this->setBattery(msg->battery_voltage);
+    this->setWearWheels(msg->wear_wheels);
+    this->setCruiseControl(msg->cruise_control);
+    this->setFuel(msg->fuel);
+    this->setFuelAverage(msg->fuel_average_consumption);
+    this->setWearChassis(msg->wear_chassis);
+    this->setCargoMass(msg->cargo_mass);
 }
 #endif
 
