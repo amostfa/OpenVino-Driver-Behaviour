@@ -152,6 +152,8 @@ static const char client_id_message[] = "Client id to use (optional)";
 // AWS CA certificate
 static const char ca_file_message[] = "Path to a CA file in PEM format";
 
+static const char pid_da_message[] = "PID of driver_actions.py";
+
 /// \brief Define flag for showing help message <br>
 DEFINE_bool(h, false, help_message);
 
@@ -268,7 +270,7 @@ DEFINE_bool(dlib_lm, false, "Acti");
 
 DEFINE_string(fg, "", "Path to gallery");
 
-DEFINE_uint32(pid_da, 0, "PID of driver_actions.py");
+DEFINE_uint32(pid_da, 0, pid_da_message);
 
 /**
 * \brief This function shows a help message
