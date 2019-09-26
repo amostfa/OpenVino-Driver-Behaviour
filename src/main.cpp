@@ -14,6 +14,8 @@
 #include <thread>
 #include <mutex>
 #include <math.h>
+#include <sys/types.h>
+#include <signal.h>
 
 #include <inference_engine.hpp>
 
@@ -393,6 +395,8 @@ void alarmDistraction(cv::Mat prev_frame, int is_dist, int y_alarm, int x_truck_
     cv::rectangle(prev_frame, cv::Rect(x_vum_dist, y_vum_dist + y_vum - (y_vum_unit * maxCritical), x_vum, y_vum_unit * (maxCritical - maxWarning)), cv::Scalar(0, 0, 50), -1);
 
     // VU Meter Logic
+    if (tDistraction > maxNormal && pid_da != 0)
+       kill(pid_da, SIGUSR1);
     if (tDistraction <= maxNormal)
     {
         cv::rectangle(prev_frame, cv::Rect(x_vum_dist, y_vum_dist + y_vum - y_vum_unit * tDistraction, x_vum, y_vum_unit * tDistraction), cv::Scalar(0, 255, 0), -1);
@@ -516,6 +520,7 @@ int main(int argc, char *argv[])
 
         std::chrono::high_resolution_clock::time_point slp1, slp2;
 
+        int pid_da = FLAGS_pid_da;
         float EYE_AR_THRESH = 0.195;
         float MOUTH_EAR_THRESH = 0.65;
         float EYE_AR_CONSEC_FRAMES = 3;

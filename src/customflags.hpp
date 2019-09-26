@@ -268,6 +268,8 @@ DEFINE_bool(dlib_lm, false, "Acti");
 
 DEFINE_string(fg, "", "Path to gallery");
 
+DEFINE_uint32(pid_da, 0, "PID of driver_actions.py");
+
 /**
 * \brief This function shows a help message
 */
@@ -314,4 +316,5 @@ static void showUsage() {
     std::cout << "    -topic                     " << topic_message << std::endl;
     std::cout << "    -client_id                 " << client_id_message << std::endl;
     std::cout << "    -ca_file                   " << ca_file_message << std::endl;
+    std::cout << "    -pid_da                   " << pid_da_message << std::endl;
 }
