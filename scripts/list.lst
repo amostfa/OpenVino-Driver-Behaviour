@@ -5,3 +5,7 @@ person-reidentification-retail*
 emotions-recognition-retail*
 head-pose-estimation-adas*
 face-reidentification-retail*
+action-recognition-????-decoder
+action-recognition-????-encoder
+driver-action-recognition-adas-????-decoder
+driver-action-recognition-adas-????-encoder
