@@ -313,7 +313,7 @@ void alarmDrowsiness(cv::Mat prev_frame, int yawn_total, int blinl_total, int wi
     cv::rectangle(prev_frame, cv::Rect(x_vum_drow, y_vum_drow, x_vum, y_vum), cv::Scalar(255, 255, 255), 1);
 }
 
-void alarmDistraction(cv::Mat prev_frame, int is_dist, int y_alarm, int x_truck_i)
+void alarmDistraction(cv::Mat prev_frame, int is_dist, int y_alarm, int x_truck_i, int pid_da)
 {
     // Alarm Logic Function
     if (is_dist)
@@ -520,7 +520,6 @@ int main(int argc, char *argv[])
 
         std::chrono::high_resolution_clock::time_point slp1, slp2;
 
-        int pid_da = FLAGS_pid_da;
         float EYE_AR_THRESH = 0.195;
         float MOUTH_EAR_THRESH = 0.65;
         float EYE_AR_CONSEC_FRAMES = 3;
@@ -544,6 +543,7 @@ int main(int argc, char *argv[])
             return 0;
         }
 
+        int pid_da = FLAGS_pid_da;
         slog::info << "Reading input" << slog::endl;
         cv::VideoCapture cap;
         const bool isCamera = FLAGS_i == "cam";
@@ -1147,7 +1147,7 @@ int main(int argc, char *argv[])
 
                             // Thread: Drowsiness Alarm
                             std::thread thread_drowsiness(alarmDrowsiness, prev_frame, yawn_total, blinl_total, width, height, x_alarm, y_alarm, x_truck_i, headbutt);
-                            std::thread thread_distraction(alarmDistraction, prev_frame, is_dist, y_alarm, x_truck_i);
+                            std::thread thread_distraction(alarmDistraction, prev_frame, is_dist, y_alarm, x_truck_i, pid_da);
                             // Thread: Drowsiness Alarm
                             thread_drowsiness.join();
                             thread_distraction.join();
