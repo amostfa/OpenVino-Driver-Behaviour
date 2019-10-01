@@ -30,15 +30,38 @@ from action_recognition_demo.models import IEModel
 from action_recognition_demo.result_renderer import ResultRenderer
 from action_recognition_demo.steps import run_pipeline
 from action_recognition_demo.config import *
+#import boto3
+#from botocore.exceptions import NoCredentialsError
+from action_recognition_demo.basicpubsub import BasicPubSub
 from os import path
 
+"""
+# Send data to S3
+ACCESS_KEY = 'XXXXXXXXXXXXXXXX'
+SECRET_KEY = 'XXXXXXXX/XXXXXXXXXXXXXXXXXXXXXXXX'
+AllowedActions = ['both', 'publish', 'subscribe']
+
+def upload_to_aws(local_file, bucket, s3_file):
+    s3 = boto3.client('s3', aws_access_key_id=ACCESS_KEY,
+                      aws_secret_access_key=SECRET_KEY)
+    try:
+        s3.upload_file(local_file, bucket, s3_file)
+        print("Upload Successful")
+        return True
+    except FileNotFoundError:
+        print("The file was not found")
+        return False
+    except NoCredentialsError:
+        print("Credentials not available")
+        return False
+"""
 state = {"signal": False, "ready": True }
+AllowedActions = ['both', 'publish', 'subscribe']
 
-def video_demo(encoder, decoder, videos, fps=30, labels=None):
+def video_demo(encoder, decoder, videos, fps=30, labels=None, publicAWS=None):
     """Continuously run demo on provided video list"""
-    result_presenter = ResultRenderer(labels=labels)
+    result_presenter = ResultRenderer(labels=labels, publicAWS = publicAWS)
     run_pipeline(videos, encoder, decoder, result_presenter.render_frame, fps=fps)
-
 
 def build_argparser():
     parser = ArgumentParser(add_help=False)
@@ -58,7 +81,21 @@ def build_argparser():
                       default="CPU", type=str)
     args.add_argument("--fps", help="Optional. FPS for renderer", default=30, type=int)
     args.add_argument("-lb", "--labels", help="Optional. Path to file with label names", type=str)
-
+    # Data to AWS
+    args.add_argument("-e", "--endpoint", action="store", required=True, dest="host", help="Your AWS IoT custom endpoint")
+    args.add_argument("-r", "--rootCA", action="store", required=True, dest="rootCAPath", help="Root CA file path")
+    args.add_argument("-c", "--cert", action="store", dest="certificatePath", help="Certificate file path")
+    args.add_argument("-k", "--key", action="store", dest="privateKeyPath", help="Private key file path")
+    args.add_argument("-p", "--port", action="store", dest="port", type=int, help="Port number override")
+    args.add_argument("-w", "--websocket", action="store_true", dest="useWebsocket", default=False,
+                        help="Use MQTT over WebSocket")
+    args.add_argument("-id", "--clientId", action="store", dest="clientId", default="basicPubSub",
+                        help="Targeted client id")
+    args.add_argument("-t", "--topic", action="store", dest="topic", default="sdk/test/Python", help="Targeted topic")
+    args.add_argument("-m", "--mode", action="store", dest="mode", default="both",
+                        help="Operation modes: %s"%str(AllowedActions))
+    args.add_argument("-M", "--message", action="store", dest="message", default="Hello World!",
+                        help="Message to publish")
     return parser
 
 def receiveSignal(signalNumber, frame):
@@ -77,6 +114,24 @@ def main():
     signal.signal(signal.SIGUSR1, receiveSignal)
     signal.signal(signal.SIGINT, terminateProcess)
     signal.signal(signal.SIGTERM, terminateProcess)
+
+    # Data to AWS
+    if args.mode not in AllowedActions:
+        args.error("Unknown --mode option %s. Must be one of %s" % (args.mode, str(AllowedActions)))
+        exit(2)
+
+    if args.useWebsocket and args.certificatePath and args.privateKeyPath:
+        args.error("X.509 cert authentication and WebSocket are mutual exclusive. Please pick one.")
+        exit(2)
+
+    if not args.useWebsocket and (not args.certificatePath or not args.privateKeyPath):
+        args.error("Missing credentials for authentication.")
+        exit(2)
+
+    publicAWS = BasicPubSub(host = args.host, rootCAPath = args.rootCAPath, certificatePath = args.certificatePath, privateKeyPath = args.privateKeyPath, port = args.port, useWebsocket = args.useWebsocket, clientId = args.clientId, topic = args.topic, mode = args.mode, message = args.mode)
+    publicAWS.suscribeMQTT()
+    # End Data to AWS
+
     full_name = path.basename(args.input)
     extension = path.splitext(full_name)[1]
 
@@ -124,7 +179,8 @@ def main():
         if (state["signal"]):
             state["signal"] = False
             state["ready"] = False
-            video_demo(encoder, decoder, videos, args.fps, labels)
+            #upload_to_aws('README.md', 'driver-actions', 'README100.md')
+            video_demo(encoder, decoder, videos, args.fps, labels, publicAWS)
             state["ready"] = True
 
 

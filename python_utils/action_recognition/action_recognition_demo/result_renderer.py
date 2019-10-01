@@ -32,7 +32,7 @@ TEXT_LEFT_MARGIN = 15
 
 class ResultRenderer(object):
     def __init__(self, display_fps=False, display_confidence=True, number_of_predictions=1, labels=None,
-                 output_height=720):
+                 output_height=720, publicAWS=None):
         self.number_of_predictions = number_of_predictions
         self.display_confidence = display_confidence
         self.display_fps = display_fps
@@ -40,6 +40,8 @@ class ResultRenderer(object):
         self.output_height = output_height
         self.meters = defaultdict(partial(WindowAverageMeter, 16))
         self.postprocessing = [LabelPostprocessing(n_frames=30, history_size=100) for _ in range(number_of_predictions)]
+        self.publicAWS = publicAWS
+        self.last_label=''
         print("To close the application, press 'CTRL+C' here or switch to the output window and press any key")
 
     def update_timers(self, timers):
@@ -75,7 +77,9 @@ class ResultRenderer(object):
         for i, (label, prob) in enumerate(islice(zip(labels, probs), self.number_of_predictions)):
             display_text = text_template.format(label=label, conf=prob * 100)
             text_loc = (TEXT_LEFT_MARGIN, TEXT_VERTICAL_INTERVAL * (i + 1))
-
+            if (label is not 'Preparing...') and (label is not self.last_label):
+                    self.last_label = label
+                    self.publicAWS.publicMQTT(action = label, action_prob = prob * 100)
             cv2.putText(frame, display_text, text_loc, FONT_STYLE, FONT_SIZE, FONT_COLOR)
 
         if self.display_fps:
