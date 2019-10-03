@@ -85,7 +85,9 @@ def main():
     # Read IR
     log.info("Loading network files:\n\t{}\n\t{}".format(model_xml, model_bin))
     net = IENetwork(model=model_xml, weights=model_bin)
+    
     if args.sounds: soundWelcome.join()
+    
     if "CPU" in args.device:
         supported_layers = ie.query_network(net, "CPU")
         not_supported_layers = [l for l in net.layers.keys() if l not in supported_layers]
@@ -137,16 +139,9 @@ def main():
     is_async_mode = True
     render_time = 0
     ret, frame = cap.read()
-
-    showCrosshair = False
-    fromCenter = True
-    if args.sounds: soundLeft.start()
-    if args.sounds: soundLeft.join()
-    roi = cv2.selectROI("Select Left Blindspot Area", frame, fromCenter, showCrosshair)
-    cv2.destroyWindow("Select Left Blindspot Area")
-    # roiR = cv2.selectROI("Select Right Blindspot Area", frame, fromCenter, showCrosshair)
-    # cv2.destroyWindow("Select Right Blindspot Area")
-    # roi = cv2.selectROIs("Select Blindspot Area", frame, fromCenter, showCrosshair)
+    
+    # ROI: Autoselected 15% of the left
+    roi = [0, 0 , int(cap.get(3) * 0.3), int(cap.get(4))]
 
     print("To close the application, press 'CTRL+C' here or switch to the output window and press ESC key")
     print("To switch between sync/async modes, press TAB key in the output window")
@@ -162,8 +157,8 @@ def main():
             ret, frame = cap.read()
         if not ret:
             break
-        initial_w = cap.get(3)
-        initial_h = cap.get(4)
+        # initial_w = cap.get(3)
+        # initial_h = cap.get(4)
 
         # Selected rectangle overlay
         overlay = frame.copy()
@@ -171,23 +166,23 @@ def main():
         alpha = 0.3  # Transparency factor.
         cv2.addWeighted(overlay, alpha, frame, 1 - alpha, 0, frame) # Following line overlays transparent rectangle over the image
 
-        # frame = frame[roi[1]:roi[1]+roi[3], roi[0]:roi[0]+roi[2]]
-        # next_frame = next_frame[roi[1]:roi[1]+roi[3], roi[0]:roi[0]+roi[2]]
-        # initial_w = roi[2]
-        # initial_h = roi[3]
+        frameROI = frame[roi[1]:roi[1]+roi[3], roi[0]:roi[0]+roi[2]]
+        next_frameROI = next_frame[roi[1]:roi[1]+roi[3], roi[0]:roi[0]+roi[2]]
+        initial_w = roi[2]
+        initial_h = roi[3]
 
         # Main sync point:
         # in the truly Async mode we start the NEXT infer request, while waiting for the CURRENT to complete
         # in the regular mode we start the CURRENT request and immediately wait for it's completion
         inf_start = time.time()
         if is_async_mode:
-            in_frame = cv2.resize(next_frame, (w, h))
+            in_frame = cv2.resize(next_frameROI, (w, h))
             in_frame = in_frame.transpose((2, 0, 1))  # Change data layout from HWC to CHW
             in_frame = in_frame.reshape((n, c, h, w))
             feed_dict[input_blob] = in_frame
             exec_net.start_async(request_id=next_request_id, inputs=feed_dict)
         else:
-            in_frame = cv2.resize(frame, (w, h))
+            in_frame = cv2.resize(frameROI, (w, h))
             in_frame = in_frame.transpose((2, 0, 1))  # Change data layout from HWC to CHW
             in_frame = in_frame.reshape((n, c, h, w))
             feed_dict[input_blob] = in_frame
@@ -202,17 +197,21 @@ def main():
             for obj in res[0][0]:
                 # Draw only objects when probability more than specified threshold
                 if obj[2] > args.prob_threshold:
-                    xmin = int(obj[3] * initial_w)
-                    ymin = int(obj[4] * initial_h)
-                    xmax = int(obj[5] * initial_w)
-                    ymax = int(obj[6] * initial_h)
+                    xmin = roi[0] + int(obj[3] * initial_w)
+                    ymin = roi[1] + int(obj[4] * initial_h)
+                    xmax = roi[0] + int(obj[5] * initial_w)
+                    ymax = roi[1] + int(obj[6] * initial_h)
                     class_id = int(obj[1])
                     # Draw box and label\class_id
-                    color = (min(class_id * 12.5, 255), min(class_id * 7, 255), min(class_id * 5, 255))
-                    cv2.rectangle(frame, (xmin, ymin), (xmax, ymax), color, 2)
-                    det_label = labels_map[class_id] if labels_map else str(class_id)
+                    if (class_id == 1):
+                        color = (0,255,0)
+                    else:
+                        color = (255,0,0)
+                    #color = (min(class_id * 12.5, 255), min(class_id * 7, 255), min(class_id * 5, 255))
+                    cv2.rectangle(frame, (xmin, ymin), (xmax, ymax), color, 1)
+                    det_label = labels_map[class_id] if labels_map else str(switch_class(class_id))
                     cv2.putText(frame, det_label + ' ' + str(round(obj[2] * 100, 1)) + ' %', (xmin, ymin - 7),
-                                cv2.FONT_HERSHEY_COMPLEX, 0.6, color, 1)
+                                cv2.FONT_HERSHEY_COMPLEX, 0.5, color, 1)
                     object_detected = True
                     object_time = time.time()
                     
@@ -229,7 +228,6 @@ def main():
             else:
                 cv2.circle(frame, (25,50), 10, (0, 255, 0) , -1)
                 cv2.putText(frame, "Nothing detected", (40, 55), cv2.FONT_HERSHEY_COMPLEX, 0.5, (0, 255, 0), 1)
-            
 
             # print (switch_class(class_id))
 
@@ -245,7 +243,6 @@ def main():
             cv2.putText(frame, async_mode_message, (10, int(initial_h - 20)), cv2.FONT_HERSHEY_COMPLEX, 0.5,
                         (10, 10, 200), 1)
 
-        #
         render_start = time.time()
         cv2.imshow("Detection Results", frame)
         # cv2.imshow("Detection Results", frame[roi[1]:roi[1]+roi[3], roi[0]:roi[0]+roi[2]])
@@ -258,6 +255,14 @@ def main():
             frame = next_frame
 
         key = cv2.waitKey(1)
+        if key == ord('l'):
+            showCrosshair = False
+            fromCenter = True
+            if args.sounds: soundLeft.start()
+            if args.sounds: soundLeft.join()
+            
+            roi = cv2.selectROI("Select Left Blindspot Area", frame, fromCenter, showCrosshair)
+            cv2.destroyWindow("Select Left Blindspot Area")
         if key == 27:
             break
         if (9 == key):
