@@ -1330,11 +1330,11 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-#ifdef SIMULATOR
-    truck_data.join();
-#endif
-
     slog::info << "Execution successful" << slog::endl;
+
+#ifdef SIMULATOR
+    std::terminate();
+#endif
 
     return 0;
 }
