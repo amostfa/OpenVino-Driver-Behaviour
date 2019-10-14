@@ -70,8 +70,6 @@ def main():
     if (args.sounds):
         soundWelcome = Thread(target = play, args = (path,'welcome.mp3'))
         soundLeft = Thread(target = play, args = (path,'select_left.mp3'))
-        #soundRight = Thread(target = play, args = (path,'select_right.mp3'))
-        #soundBeep = Thread(target = play, args = (path,'beep.mp3'))
 
     if args.sounds: soundWelcome.start()
 
@@ -140,15 +138,14 @@ def main():
     render_time = 0
     ret, frame = cap.read()
     
-    # ROI: Autoselected 15% of the left
-    roi = [0, 0 , int(cap.get(3) * 0.3), int(cap.get(4))]
+    roi = [0, 0 , int(cap.get(3) * 0.25), int(cap.get(4))]  # ROI: Autoselected 15% of the left
 
     print("To close the application, press 'CTRL+C' here or switch to the output window and press ESC key")
     print("To switch between sync/async modes, press TAB key in the output window")
-    # i = 0
-    object_detected = False
-    alarm = False
+    
     object_time = 0
+    alarm = False
+    object_detected = False
 
     while cap.isOpened():
         if is_async_mode:
@@ -157,8 +154,8 @@ def main():
             ret, frame = cap.read()
         if not ret:
             break
-        # initial_w = cap.get(3)
-        # initial_h = cap.get(4)
+        initial_w = cap.get(3)
+        initial_h = cap.get(4)
 
         # Selected rectangle overlay
         overlay = frame.copy()
@@ -166,23 +163,18 @@ def main():
         alpha = 0.3  # Transparency factor.
         cv2.addWeighted(overlay, alpha, frame, 1 - alpha, 0, frame) # Following line overlays transparent rectangle over the image
 
-        frameROI = frame[roi[1]:roi[1]+roi[3], roi[0]:roi[0]+roi[2]]
-        next_frameROI = next_frame[roi[1]:roi[1]+roi[3], roi[0]:roi[0]+roi[2]]
-        initial_w = roi[2]
-        initial_h = roi[3]
-
         # Main sync point:
         # in the truly Async mode we start the NEXT infer request, while waiting for the CURRENT to complete
         # in the regular mode we start the CURRENT request and immediately wait for it's completion
         inf_start = time.time()
         if is_async_mode:
-            in_frame = cv2.resize(next_frameROI, (w, h))
+            in_frame = cv2.resize(next_frame, (w, h))
             in_frame = in_frame.transpose((2, 0, 1))  # Change data layout from HWC to CHW
             in_frame = in_frame.reshape((n, c, h, w))
             feed_dict[input_blob] = in_frame
             exec_net.start_async(request_id=next_request_id, inputs=feed_dict)
         else:
-            in_frame = cv2.resize(frameROI, (w, h))
+            in_frame = cv2.resize(frame, (w, h))
             in_frame = in_frame.transpose((2, 0, 1))  # Change data layout from HWC to CHW
             in_frame = in_frame.reshape((n, c, h, w))
             feed_dict[input_blob] = in_frame
@@ -197,10 +189,10 @@ def main():
             for obj in res[0][0]:
                 # Draw only objects when probability more than specified threshold
                 if obj[2] > args.prob_threshold:
-                    xmin = roi[0] + int(obj[3] * initial_w)
-                    ymin = roi[1] + int(obj[4] * initial_h)
-                    xmax = roi[0] + int(obj[5] * initial_w)
-                    ymax = roi[1] + int(obj[6] * initial_h)
+                    xmin = int(obj[3] * initial_w)
+                    ymin = int(obj[4] * initial_h)
+                    xmax = int(obj[5] * initial_w)
+                    ymax = int(obj[6] * initial_h)
                     class_id = int(obj[1])
                     # Draw box and label\class_id
                     if (class_id == 1):
@@ -211,42 +203,42 @@ def main():
                     cv2.rectangle(frame, (xmin, ymin), (xmax, ymax), color, 1)
                     det_label = labels_map[class_id] if labels_map else str(switch_class(class_id))
                     cv2.putText(frame, det_label + ' ' + str(round(obj[2] * 100, 1)) + ' %', (xmin, ymin - 7),
-                                cv2.FONT_HERSHEY_COMPLEX, 0.5, color, 1)
-                    object_detected = True
-                    object_time = time.time()
-                    
-            if object_detected:
-                alarm = True
-                object_detected = False
-                # if args.sounds: playsound('sounds/beep.mp3')
-            else: 
-                if (time.time() - object_time > 2):
-                    alarm = False
-            if alarm:
-                cv2.circle(frame, (25,50), 10, (0, 0, 255) , -1)
-                cv2.putText(frame, "Last Detected: " + switch_class(class_id), (40, 55), cv2.FONT_HERSHEY_COMPLEX, 0.5, (0, 0, 255), 1)
-            else:
-                cv2.circle(frame, (25,50), 10, (0, 255, 0) , -1)
-                cv2.putText(frame, "Nothing detected", (40, 55), cv2.FONT_HERSHEY_COMPLEX, 0.5, (0, 255, 0), 1)
+                                cv2.FONT_HERSHEY_COMPLEX, 0.5, color, 1)                    
 
-            # print (switch_class(class_id))
+                    if (xmin > roi[0] and xmin < roi[0] + roi[2]) or (xmax > roi[0] and xmax < roi[0] + roi[2]) or (xmin < roi[0] and xmax > roi[0] + roi[2]) :
+                        if(ymin > roi[1] and ymin < roi[1] + roi[3]) or (ymax > roi[1] and ymax < roi[1] + roi[3]) or (ymin < roi[1] and ymax > roi[1] + roi[3]) : 
+                            object_detected = True
+                            last_object = str(switch_class(class_id))
+                                   
+        if object_detected:
+            object_time = time.time()
+            object_detected = False
+            alarm = True
+        else: 
+            if (time.time() - object_time > 2):
+                alarm = False
+        if alarm:
+            cv2.circle(frame, (25,50), 10, (0, 0, 255) , -1)
+            cv2.putText(frame, "Last object detected: " + last_object, (40, 55), cv2.FONT_HERSHEY_COMPLEX, 0.5, (0, 0, 255), 1)
+        else:
+            cv2.circle(frame, (25,50), 10, (0, 255, 0) , -1)
+            cv2.putText(frame, "Nothing detected", (40, 55), cv2.FONT_HERSHEY_COMPLEX, 0.5, (0, 255, 0), 1)
+        
+        # Draw performance stats
+        inf_time_message = "Inference time: N\A for async mode" if is_async_mode else \
+            "Inference time: {:.3f} ms".format(det_time * 1000)
+        render_time_message = "OpenCV rendering time: {:.3f} ms".format(render_time * 1000)
+        async_mode_message = "Async mode is on. Processing request {}".format(cur_request_id) if is_async_mode else \
+            "Async mode is off. Processing request {}".format(cur_request_id)
 
-            # Draw performance stats
-            inf_time_message = "Inference time: N\A for async mode" if is_async_mode else \
-                "Inference time: {:.3f} ms".format(det_time * 1000)
-            render_time_message = "OpenCV rendering time: {:.3f} ms".format(render_time * 1000)
-            async_mode_message = "Async mode is on. Processing request {}".format(cur_request_id) if is_async_mode else \
-                "Async mode is off. Processing request {}".format(cur_request_id)
-
-            cv2.putText(frame, inf_time_message, (15, 15), cv2.FONT_HERSHEY_COMPLEX, 0.5, (200, 10, 10), 1)
-            cv2.putText(frame, render_time_message, (15, 30), cv2.FONT_HERSHEY_COMPLEX, 0.5, (10, 10, 200), 1)
-            cv2.putText(frame, async_mode_message, (10, int(initial_h - 20)), cv2.FONT_HERSHEY_COMPLEX, 0.5,
-                        (10, 10, 200), 1)
+        cv2.putText(frame, inf_time_message, (15, 15), cv2.FONT_HERSHEY_COMPLEX, 0.5, (200, 10, 10), 1)
+        cv2.putText(frame, render_time_message, (15, 30), cv2.FONT_HERSHEY_COMPLEX, 0.5, (10, 10, 200), 1)
+        cv2.putText(frame, async_mode_message, (10, int(initial_h - 20)), cv2.FONT_HERSHEY_COMPLEX, 0.5,
+                    (10, 10, 200), 1)
 
         render_start = time.time()
         cv2.imshow("Detection Results", frame)
-        # cv2.imshow("Detection Results", frame[roi[1]:roi[1]+roi[3], roi[0]:roi[0]+roi[2]])
-
+        
         render_end = time.time()
         render_time = render_end - render_start
 
@@ -261,8 +253,7 @@ def main():
             if args.sounds: soundLeft.start()
             if args.sounds: soundLeft.join()
             
-            roi = cv2.selectROI("Select Left Blindspot Area", frame, fromCenter, showCrosshair)
-            cv2.destroyWindow("Select Left Blindspot Area")
+            roi = cv2.selectROI("Detection Results", frame, fromCenter, showCrosshair)
         if key == 27:
             break
         if (9 == key):
