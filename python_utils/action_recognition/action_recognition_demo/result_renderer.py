@@ -79,7 +79,8 @@ class ResultRenderer(object):
             text_loc = (TEXT_LEFT_MARGIN, TEXT_VERTICAL_INTERVAL * (i + 1))
             if (label is not 'Preparing...') and (label is not self.last_label):
                     self.last_label = label
-                    self.publicAWS.publicMQTT(action = label, action_prob = prob * 100)
+                    if self.publicAWS is not None:
+                        self.publicAWS.publicMQTT(action = label, action_prob = prob * 100)
             cv2.putText(frame, display_text, text_loc, FONT_STYLE, FONT_SIZE, FONT_COLOR)
 
         if self.display_fps:
