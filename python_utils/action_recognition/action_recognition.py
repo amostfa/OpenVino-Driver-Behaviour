@@ -82,8 +82,8 @@ def build_argparser():
     args.add_argument("--fps", help="Optional. FPS for renderer", default=30, type=int)
     args.add_argument("-lb", "--labels", help="Optional. Path to file with label names", type=str)
     # Data to AWS
-    args.add_argument("-e", "--endpoint", action="store", required=True, dest="host", help="Your AWS IoT custom endpoint")
-    args.add_argument("-r", "--rootCA", action="store", required=True, dest="rootCAPath", help="Root CA file path")
+    args.add_argument("-e", "--endpoint", action="store", dest="host", help="Your AWS IoT custom endpoint")
+    args.add_argument("-r", "--rootCA", action="store", dest="rootCAPath", help="Root CA file path")
     args.add_argument("-c", "--cert", action="store", dest="certificatePath", help="Certificate file path")
     args.add_argument("-k", "--key", action="store", dest="privateKeyPath", help="Private key file path")
     args.add_argument("-p", "--port", action="store", dest="port", type=int, help="Port number override")
@@ -96,6 +96,7 @@ def build_argparser():
                         help="Operation modes: %s"%str(AllowedActions))
     args.add_argument("-M", "--message", action="store", dest="message", default="Hello World!",
                         help="Message to publish")
+    args.add_argument("--only", help="Optional. Run Driver Action without Driver Assistance waiting signal", dest="only", action='store_true')                        
     return parser
 
 def receiveSignal(signalNumber, frame):
@@ -115,22 +116,23 @@ def main():
     signal.signal(signal.SIGINT, terminateProcess)
     signal.signal(signal.SIGTERM, terminateProcess)
 
-    # Data to AWS
-    if args.mode not in AllowedActions:
-        args.error("Unknown --mode option %s. Must be one of %s" % (args.mode, str(AllowedActions)))
-        exit(2)
+    if args.rootCAPath is not None:
+        # Data to AWS  
+        if args.mode not in AllowedActions:
+            args.error("Unknown --mode option %s. Must be one of %s" % (args.mode, str(AllowedActions)))
+            exit(2)
+        
+        if args.useWebsocket and args.certificatePath and args.privateKeyPath:
+            args.error("X.509 cert authentication and WebSocket are mutual exclusive. Please pick one.")
+            exit(2)
 
-    if args.useWebsocket and args.certificatePath and args.privateKeyPath:
-        args.error("X.509 cert authentication and WebSocket are mutual exclusive. Please pick one.")
-        exit(2)
+        if not args.useWebsocket and (not args.certificatePath or not args.privateKeyPath):
+            args.error("Missing credentials for authentication.")
+            exit(2)
 
-    if not args.useWebsocket and (not args.certificatePath or not args.privateKeyPath):
-        args.error("Missing credentials for authentication.")
-        exit(2)
-
-    publicAWS = BasicPubSub(host = args.host, rootCAPath = args.rootCAPath, certificatePath = args.certificatePath, privateKeyPath = args.privateKeyPath, port = args.port, useWebsocket = args.useWebsocket, clientId = args.clientId, topic = args.topic, mode = args.mode, message = args.mode)
-    publicAWS.suscribeMQTT()
-    # End Data to AWS
+        publicAWS = BasicPubSub(host = args.host, rootCAPath = args.rootCAPath, certificatePath = args.certificatePath, privateKeyPath = args.privateKeyPath, port = args.port, useWebsocket = args.useWebsocket, clientId = args.clientId, topic = args.topic, mode = args.mode, message = args.mode)
+        publicAWS.suscribeMQTT()
+        # End Data to AWS
 
     full_name = path.basename(args.input)
     extension = path.splitext(full_name)[1]
@@ -180,9 +182,11 @@ def main():
             state["signal"] = False
             state["ready"] = False
             #upload_to_aws('README.md', 'driver-actions', 'README100.md')
-            video_demo(encoder, decoder, videos, args.fps, labels, publicAWS)
+            if args.rootCAPath:
+                video_demo(encoder, decoder, videos, args.fps, labels, publicAWS)
+            else:
+                video_demo(encoder, decoder, videos, args.fps, labels)
             state["ready"] = True
-
 
 if __name__ == '__main__':
     sys.exit(main() or 0)
