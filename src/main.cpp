@@ -542,7 +542,9 @@ int main(int argc, char *argv[])
         {
             return 0;
         }
-
+        // Init drowsiness and distraction levels
+        tDrowsiness = FLAGS_init_drow;
+        tDistraction = FLAGS_init_dist;
         int pid_da = FLAGS_pid_da;
         slog::info << "Reading input" << slog::endl;
         cv::VideoCapture cap;

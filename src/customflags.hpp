@@ -154,6 +154,10 @@ static const char ca_file_message[] = "Path to a CA file in PEM format";
 
 static const char pid_da_message[] = "PID of driver_actions.py";
 
+static const char init_drow_message[] = "Start drowsiness vumeter with some value [0,100]";
+
+static const char init_dist_message[] = "Start distraction vumeter with some value [0,100]";
+
 /// \brief Define flag for showing help message <br>
 DEFINE_bool(h, false, help_message);
 
@@ -272,6 +276,9 @@ DEFINE_string(fg, "", "Path to gallery");
 
 DEFINE_uint32(pid_da, 0, pid_da_message);
 
+DEFINE_uint32(init_drow, 0, init_drow_message);
+DEFINE_uint32(init_dist, 0, init_dist_message);
+
 /**
 * \brief This function shows a help message
 */
@@ -318,5 +325,7 @@ static void showUsage() {
     std::cout << "    -topic                     " << topic_message << std::endl;
     std::cout << "    -client_id                 " << client_id_message << std::endl;
     std::cout << "    -ca_file                   " << ca_file_message << std::endl;
-    std::cout << "    -pid_da                   " << pid_da_message << std::endl;
+    std::cout << "    -pid_da                    " << pid_da_message << std::endl;
+    std::cout << "    -init_drow                 " << init_drow_message << std::endl;
+    std::cout << "    -init_dist                 " << init_dist_message << std::endl;
 }
