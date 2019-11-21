@@ -47,9 +47,11 @@ private:
 	double		fuel_average_consumption;
 	double		wear_chassis;
 	double		cargo_mass;
+	double 		latitude;
+	double 		longitude;
 public:
 	/* Member Initializer & Constructor*/
-	Truck() : speed(.0), rpm(0), gear(0), engine_running(false), trailer_connected(false), parking_brake(false), air_pressure(.0), wear_engine(.0), wear_transmission(.0), battery_voltage(.0), wear_wheels(.0), cruise_control(.0), fuel(.0), fuel_average_consumption(.0), wear_chassis(.0) {
+	Truck() : speed(.0), rpm(0), gear(0), engine_running(false), trailer_connected(false), parking_brake(false), air_pressure(.0), wear_engine(.0), wear_transmission(.0), battery_voltage(.0), wear_wheels(.0), cruise_control(.0), fuel(.0), fuel_average_consumption(.0), wear_chassis(.0), latitude(.0),longitude(.0) {
 		this->setAcc(.0, .0, .0);
 		this->setPosition(.0, .0, .0, .0, .0, .0);
 	}
@@ -72,6 +74,8 @@ public:
 	double		getFuelAverage() { return this->fuel_average_consumption; }
 	double		getWearChassis() { return this->wear_chassis; }
 	double		getCargoMass() { return this->cargo_mass; }
+	double		getLatitude() { return this->latitude; }
+	double		getLongitude() { return this->longitude; }
 
 	/* Set Function */
 	void setSpeed(double _speed) { this->speed = _speed; }
@@ -94,6 +98,8 @@ public:
 	void setFuelAverage(double _fuel_average_consumption) { this->fuel_average_consumption = _fuel_average_consumption; }
 	void setWearChassis(double _wear_chassis) { this->wear_chassis = _wear_chassis; }
 	void setCargoMass(double _cargo_mass) { this->cargo_mass = _cargo_mass; }
+	void setLatitude(double _latitude) {this->latitude = _latitude; }
+	void setLongitude(double _longitude) {this->longitude = _longitude; }
 
 #ifdef SIMULATOR
         void ros_callback(const ets_msgs::msg::Truck::SharedPtr msg);

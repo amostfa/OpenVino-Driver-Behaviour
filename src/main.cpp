@@ -28,6 +28,7 @@
 #include "tracker.hpp"
 #include "classes.hpp"
 #include "picojson.hpp"
+#include <gps.h>
 
 #include <ie_iextension.h>
 #include <ext_list.hpp>
@@ -188,6 +189,7 @@ Timer timer;
 int firstTime = 0;
 Truck truck;
 bool fSim = false;
+
 
 int maxNormal = 40;
 int maxWarning = 70;
@@ -519,6 +521,8 @@ int main(int argc, char *argv[])
         std::vector<dlib::full_object_detection> shapes;
 
         std::chrono::high_resolution_clock::time_point slp1, slp2;
+	
+	    struct gps_data_t gps_data;
 
         float EYE_AR_THRESH = 0.195;
         float MOUTH_EAR_THRESH = 0.65;
@@ -536,6 +540,12 @@ int main(int argc, char *argv[])
         boost::circular_buffer<float> ear_5_mouth(5);
 
         std::cout << "InferenceEngine: " << GetInferenceEngineVersion() << std::endl;
+
+	// GPS OPEN //
+	//
+	int ret = gps_open("localhost","2947", &gps_data);
+	gps_stream(&gps_data, WATCH_ENABLE | WATCH_JSON, NULL);
+	// -------------
 
         // ------------------------------ Parsing and validation of input args ---------------------------------
         if (!ParseAndCheckCommandLine(argc, argv))
@@ -869,6 +879,11 @@ int main(int argc, char *argv[])
             picojson::value v1;
             framesCounter++;
             isLastFrame = !frameReadStatus;
+	    
+
+	    // GPS Reading
+	    int gpsret = gps_read(&gps_data);
+	    
 
             timer.start("detection");
             // Retrieve face detection results for previous frame.
@@ -1244,8 +1259,9 @@ int main(int argc, char *argv[])
                 //  	    v.get<picojson::object>()["driver"] = v1;
                 
                 // Truck Information 
-                v1.get<picojson::object>()["location"] = picojson::value("-31.406530, -64.189353"); //Fake location.
-                v1.get<picojson::object>()["engine"] = picojson::value(truck.getEngine());
+                //v1.get<picojson::object>()["location"] = picojson::value(std::to_string(gps_data.fix.latitude)+","+std::to_string(gps_data.fix.longitude));
+                v1.get<picojson::object>()["location"] = picojson::value("0,0");
+		v1.get<picojson::object>()["engine"] = picojson::value(truck.getEngine());
                 v1.get<picojson::object>()["trailer_connected"] = picojson::value(truck.getTrailer());
                 v1.get<picojson::object>()["speed"] = picojson::value(truck.getSpeed() * 3.6);
                 v1.get<picojson::object>()["rpm"] = picojson::value(std::to_string(truck.getRpm()));
@@ -1305,6 +1321,11 @@ int main(int argc, char *argv[])
             //senddata_thread.join();
 
         }
+	///// GPS CLOSE //////
+	gps_stream(&gps_data, WATCH_DISABLE, NULL);
+	gps_close(&gps_data);
+	//
+	//--------------------------
 
         connection->Unsubscribe(
             topic.c_str(), [&](Aws::Crt::Mqtt::MqttConnection &, uint16_t, int) { conditionVariable.notify_one(); });

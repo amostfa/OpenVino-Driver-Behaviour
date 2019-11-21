@@ -53,7 +53,8 @@ file (GLOB MAIN_SRC
         )
 
 file (GLOB MAIN_HEADERS
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/*.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/*.hpp 
+	${CMAKE_CURRENT_SOURCE_DIR}/src/*.h
         )
 
 # Create named folders for the sources within the .vcproj
@@ -83,7 +84,7 @@ target_include_directories(${PROJECT_NAME} PUBLIC
         $<INSTALL_INTERFACE:include>)
 
 if(UNIX)
-    target_link_libraries( ${TARGET_NAME} ${LIB_DL} pthread ${OpenCV_LIBRARIES} ${Boost_LIBRARIES} dlib::dlib ao sndfile aws-crt-cpp)
+    target_link_libraries( ${TARGET_NAME} ${LIB_DL} pthread ${OpenCV_LIBRARIES} ${Boost_LIBRARIES} dlib::dlib ao sndfile gps aws-crt-cpp)
 endif()
 
 add_custom_command(TARGET driver_behavior POST_BUILD
